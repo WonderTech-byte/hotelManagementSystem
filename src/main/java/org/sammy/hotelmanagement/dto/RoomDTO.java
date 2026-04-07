@@ -25,5 +25,5 @@ public class RoomDTO {
     public String description;
     public LocalDateTime createdAt;
     public List<RoomFeatureDTO> features;
-    public List<ImageDTO> images;
+    public List<String> imageUrls;
 }

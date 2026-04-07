@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import org.sammy.hotelmanagement.room.PriceType;
 import org.sammy.hotelmanagement.room.RoomType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -21,7 +22,6 @@ public class CreateRoomDTO {
 
     public String description;
 
-    // Images and features can be attached at creation time
-    public List<AddImageDTO> images;
-    public List<AddRoomFeatureDTO> features;
+    public List<MultipartFile> imageFiles;
+    public String features;
 }

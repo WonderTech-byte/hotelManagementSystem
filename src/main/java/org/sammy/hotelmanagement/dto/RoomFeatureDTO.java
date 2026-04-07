@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RoomFeatureDTO {
     public Long id;
-    public FeatureTypeDTO featureType;
-    public String customDescription;
-    public int displayOrder;
+    public String roomFeature;
+    public String description;
+    public String imageUrl;
 }

@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.sammy.hotelmanagement.feature.RoomFeature;
-import org.sammy.hotelmanagement.image.Image;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -49,14 +48,14 @@ public class Room {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("displayOrder ASC")
     @Builder.Default
     private List<RoomFeature> features = new ArrayList<>();
 
-    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("displayOrder ASC")
+    @ElementCollection
+    @CollectionTable(name = "room_image_urls", joinColumns = @JoinColumn(name = "room_id"))
     @Builder.Default
-    private List<Image> images = new ArrayList<>();
+    @Column(name = "image_url", nullable = false)
+    private List<String> imageUrls = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

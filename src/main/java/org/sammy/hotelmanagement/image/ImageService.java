@@ -1,90 +1,56 @@
 package org.sammy.hotelmanagement.image;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import org.sammy.hotelmanagement.dto.AddImageDTO;
-import org.sammy.hotelmanagement.dto.ImageDTO;
-import org.sammy.hotelmanagement.room.Room;
-import org.sammy.hotelmanagement.room.RoomRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.io.IOException;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class ImageService {
 
-    private final ImageRepository imageRepository;
-    private final RoomRepository roomRepository;
+    private final Cloudinary cloudinary;
 
+    public String uploadRoomImage(Long roomId, AddImageDTO dto) {
+        return uploadImage("hotel/room_" + roomId, dto.getFile());
+    }
 
-    @Transactional
-    public ImageDTO addImageToRoom(Long roomId, AddImageDTO dto) {
-        Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("Room not found: " + roomId));
+    public String uploadRoomImage(Long roomId, MultipartFile file) {
+        return uploadImage("hotel/room_" + roomId, file);
+    }
 
-        if (dto.isPrimary) {
-            imageRepository.findByRoomIdAndIsPrimaryTrue(roomId)
-                    .ifPresent(existing -> {
-                        existing.setPrimary(false);
-                        imageRepository.save(existing);
-                    });
+    public String uploadRoomFeatureImage(Long roomId, String featureName, MultipartFile file) {
+        return uploadImage("hotel/room_" + roomId + "/features/" + normalizeFolderSegment(featureName), file);
+    }
+
+    private String uploadImage(String folder, MultipartFile file) {
+        try {
+            if (file == null || file.isEmpty()) {
+                throw new RuntimeException("Please select a file to upload");
+            }
+
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                    ObjectUtils.asMap("folder", folder));
+
+            String generatedUrl = uploadResult.get("secure_url").toString();
+            if (generatedUrl == null || generatedUrl.isBlank()) {
+                throw new RuntimeException("Cloudinary did not return an image URL");
+            }
+            return generatedUrl;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload image to Cloudinary", e);
         }
-
-        Image image = Image.builder()
-                .url(dto.url)
-                .altText(dto.altText)
-                .isPrimary(dto.isPrimary)
-                .displayOrder(dto.displayOrder)
-                .room(room)
-                .build();
-
-        return toDTO(imageRepository.save(image));
     }
 
-
-
-    public List<ImageDTO> getImagesByRoom(Long roomId) {
-        return imageRepository.findByRoomIdOrderByDisplayOrderAsc(roomId)
-                .stream().map(this::toDTO).collect(Collectors.toList());
-    }
-
-
-
-    @Transactional
-    public void deleteImage(Long imageId) {
-        if (!imageRepository.existsById(imageId)) {
-            throw new RuntimeException("Image not found: " + imageId);
+    private String normalizeFolderSegment(String value) {
+        if (value == null || value.isBlank()) {
+            return "general";
         }
-        imageRepository.deleteById(imageId);
-    }
-
-
-    @Transactional
-    public ImageDTO setPrimary(Long roomId, Long imageId) {
-
-        imageRepository.findByRoomIdAndIsPrimaryTrue(roomId)
-                .ifPresent(existing -> {
-                    existing.setPrimary(false);
-                    imageRepository.save(existing);
-                });
-
-        Image image = imageRepository.findById(imageId)
-                .orElseThrow(() -> new RuntimeException("Image not found: " + imageId));
-        image.setPrimary(true);
-        return toDTO(imageRepository.save(image));
-    }
-
-
-
-    public ImageDTO toDTO(Image image) {
-        return ImageDTO.builder()
-                .id(image.getId())
-                .url(image.getUrl())
-                .altText(image.getAltText())
-                .isPrimary(image.isPrimary())
-                .displayOrder(image.getDisplayOrder())
-                .build();
+        return value.trim().toLowerCase().replaceAll("[^a-z0-9]+", "_");
     }
 }

@@ -1,14 +1,21 @@
 package org.sammy.hotelmanagement.room;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.sammy.hotelmanagement.dto.*;
 import org.sammy.hotelmanagement.feature.*;
-import org.sammy.hotelmanagement.image.Image;
-import org.sammy.hotelmanagement.image.ImageRepository;
+import org.sammy.hotelmanagement.image.ImageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -16,9 +23,10 @@ import java.util.stream.Collectors;
 public class RoomService {
 
     private final RoomRepository roomRepository;
-    private final FeatureTypeRepository featureTypeRepository;
     private final RoomFeatureRepository roomFeatureRepository;
-    private final ImageRepository imageRepository;
+    private final ImageService imageService;
+    private final ObjectMapper objectMapper;
+    private final Validator validator;
 
 
     @Transactional
@@ -38,36 +46,65 @@ public class RoomService {
 
         roomRepository.save(room);
 
-        if (dto.images != null) {
-            for (AddImageDTO imgDto : dto.images) {
-                Image image = Image.builder()
-                        .url(imgDto.url)
-                        .altText(imgDto.altText)
-                        .isPrimary(imgDto.isPrimary)
-                        .displayOrder(imgDto.displayOrder)
-                        .room(room)
-                        .build();
-                imageRepository.save(image);
+        if (dto.imageFiles != null) {
+            for (MultipartFile imageFile : dto.imageFiles) {
+                if (imageFile == null || imageFile.isEmpty()) {
+                    continue;
+                }
+                room.getImageUrls().add(imageService.uploadRoomImage(room.getId(), imageFile));
             }
         }
 
-        if (dto.features != null) {
-            for (AddRoomFeatureDTO featDto : dto.features) {
-                FeatureType featureType = featureTypeRepository.findById(featDto.featureTypeId)
-                        .orElseThrow(() -> new RuntimeException(
-                                "FeatureType not found: " + featDto.featureTypeId));
+        for (AddRoomFeatureDTO featDto : parseFeatures(dto.features)) {
+            if (roomFeatureRepository.existsByRoomAndNameIgnoreCase(room.getId(), featDto.roomFeature)) {
+                throw new RuntimeException("Duplicate feature provided for this room: " + featDto.roomFeature);
+            }
 
-                RoomFeature feature = RoomFeature.builder()
-                        .room(room)
-                        .featureType(featureType)
-                        .customDescription(featDto.customDescription)
-                        .displayOrder(featDto.displayOrder)
-                        .build();
-                roomFeatureRepository.save(feature);
+            RoomFeature feature = RoomFeature.builder()
+                    .room(room)
+                    .name(featDto.roomFeature)
+                    .description(featDto.description)
+                    .imageUrl(resolveFeatureImageUrl(room.getId(), featDto))
+                    .build();
+            roomFeatureRepository.save(feature);
+        }
+
+        return toDTO(roomRepository.save(room));
+    }
+
+    private List<AddRoomFeatureDTO> parseFeatures(String featuresJson) {
+        if (featuresJson == null || featuresJson.isBlank()) {
+            return List.of();
+        }
+
+        List<AddRoomFeatureDTO> features;
+        try {
+            features = objectMapper.readValue(featuresJson, new TypeReference<>() {});
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException("Invalid features JSON. Expected a JSON array of feature objects.", ex);
+        }
+
+        if (features == null) {
+            return List.of();
+        }
+
+        for (int i = 0; i < features.size(); i++) {
+            AddRoomFeatureDTO feature = features.get(i);
+            if (feature == null) {
+                throw new RuntimeException("Invalid features JSON. Feature at index " + i + " must be an object.");
+            }
+
+            Set<ConstraintViolation<AddRoomFeatureDTO>> violations = validator.validate(feature);
+            if (!violations.isEmpty()) {
+                String message = violations.stream()
+                        .map(ConstraintViolation::getMessage)
+                        .sorted()
+                        .collect(Collectors.joining(", "));
+                throw new RuntimeException("Invalid feature at index " + i + ": " + message);
             }
         }
 
-        return toDTO(roomRepository.findById(room.getId()).orElseThrow());
+        return features;
     }
 
 
@@ -105,29 +142,22 @@ public class RoomService {
 
 
     @Transactional
-    public ImageDTO addImage(Long roomId, AddImageDTO dto) {
+    public RoomDTO addImage(Long roomId, AddImageDTO dto) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RuntimeException("Room not found: " + roomId));
 
+        String uploadedImageUrl = imageService.uploadRoomImage(roomId, dto);
 
-        if (dto.isPrimary) {
-            imageRepository.findByRoomIdAndIsPrimaryTrue(roomId)
-                    .ifPresent(existing -> {
-                        existing.setPrimary(false);
-                        imageRepository.save(existing);
-                    });
+        List<String> imageUrls = room.getImageUrls();
+        if (imageUrls == null) {
+            imageUrls = new ArrayList<>();
+            room.setImageUrls(imageUrls);
+        }
+        if (!imageUrls.contains(uploadedImageUrl)) {
+            imageUrls.add(uploadedImageUrl);
         }
 
-        Image image = Image.builder()
-                .url(dto.url)
-                .altText(dto.altText)
-                .isPrimary(dto.isPrimary)
-                .displayOrder(dto.displayOrder)
-                .room(room)
-                .build();
-
-        Image saved = imageRepository.save(image);
-        return toImageDTO(saved);
+        return toDTO(roomRepository.save(room));
     }
 
 
@@ -137,19 +167,15 @@ public class RoomService {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RuntimeException("Room not found: " + roomId));
 
-        FeatureType featureType = featureTypeRepository.findById(dto.featureTypeId)
-                .orElseThrow(() -> new RuntimeException(
-                        "FeatureType not found: " + dto.featureTypeId));
-
-        if (roomFeatureRepository.existsByRoomIdAndFeatureTypeId(roomId, dto.featureTypeId)) {
+        if (roomFeatureRepository.existsByRoomAndNameIgnoreCase(roomId, dto.roomFeature)) {
             throw new RuntimeException("Feature already added to this room");
         }
 
         RoomFeature feature = RoomFeature.builder()
                 .room(room)
-                .featureType(featureType)
-                .customDescription(dto.customDescription)
-                .displayOrder(dto.displayOrder)
+                .name(dto.roomFeature)
+                .description(dto.description)
+                .imageUrl(resolveFeatureImageUrl(roomId, dto))
                 .build();
 
         return toRoomFeatureDTO(roomFeatureRepository.save(feature));
@@ -165,20 +191,28 @@ public class RoomService {
         roomRepository.deleteById(id);
     }
 
-    public void deleteImage(Long imageId) {
-        imageRepository.deleteById(imageId);
+    @Transactional
+    public RoomDTO deleteImage(Long roomId, String imageUrl) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new RuntimeException("Room not found: " + roomId));
+        if (imageUrl == null || imageUrl.isBlank()) {
+            throw new RuntimeException("Image URL is required");
+        }
+
+        boolean removed = room.getImageUrls().removeIf(existingUrl -> existingUrl.equals(imageUrl));
+        if (!removed) {
+            throw new RuntimeException("Image URL not found for room: " + roomId);
+        }
+
+        return toDTO(roomRepository.save(room));
     }
 
 
 
     public RoomDTO toDTO(Room room) {
         List<RoomFeatureDTO> features = roomFeatureRepository
-                .findByRoomIdOrderByDisplayOrderAsc(room.getId())
+                .findByRoomId(room.getId())
                 .stream().map(this::toRoomFeatureDTO).collect(Collectors.toList());
-
-        List<ImageDTO> images = imageRepository
-                .findByRoomIdOrderByDisplayOrderAsc(room.getId())
-                .stream().map(this::toImageDTO).collect(Collectors.toList());
 
         return RoomDTO.builder()
                 .id(room.getId())
@@ -190,36 +224,23 @@ public class RoomService {
                 .description(room.getDescription())
                 .createdAt(room.getCreatedAt())
                 .features(features)
-                .images(images)
+                .imageUrls(room.getImageUrls() == null ? new ArrayList<>() : new ArrayList<>(room.getImageUrls()))
                 .build();
     }
 
     private RoomFeatureDTO toRoomFeatureDTO(RoomFeature rf) {
-        FeatureCategory cat = rf.getFeatureType().getCategory();
-        FeatureCategoryDTO catDTO = FeatureCategoryDTO.builder()
-                .id(cat.getId()).name(cat.getName()).icon(cat.getIcon()).build();
-
-        FeatureTypeDTO typeDTO = FeatureTypeDTO.builder()
-                .id(rf.getFeatureType().getId())
-                .name(rf.getFeatureType().getName())
-                .category(catDTO)
-                .build();
-
         return RoomFeatureDTO.builder()
                 .id(rf.getId())
-                .featureType(typeDTO)
-                .customDescription(rf.getCustomDescription())
-                .displayOrder(rf.getDisplayOrder())
+                .roomFeature(rf.getName())
+                .description(rf.getDescription())
+                .imageUrl(rf.getImageUrl())
                 .build();
     }
 
-    private ImageDTO toImageDTO(Image img) {
-        return ImageDTO.builder()
-                .id(img.getId())
-                .url(img.getUrl())
-                .altText(img.getAltText())
-                .isPrimary(img.isPrimary())
-                .displayOrder(img.getDisplayOrder())
-                .build();
+    private String resolveFeatureImageUrl(Long roomId, AddRoomFeatureDTO dto) {
+        if (dto.getImageFile() != null && !dto.getImageFile().isEmpty()) {
+            return imageService.uploadRoomFeatureImage(roomId, dto.getRoomFeature(), dto.getImageFile());
+        }
+        return null;
     }
 }

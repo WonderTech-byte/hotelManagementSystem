@@ -37,6 +37,27 @@ public class EmailNotificationService {
         }
     }
 
+    @Async
+    public void sendPasswordResetEmail(User user, String resetLink) {
+        String subject = "Password Reset Request";
+        String body = String.format("""
+                Dear %s,
+
+                We received a request to reset your password.
+
+                Reset link:
+                %s
+
+                If you did not request this, you can ignore this email.
+
+                Hotel Management Team
+                """,
+                user.getFullName(),
+                resetLink
+        );
+        send(user.getEmail(), subject, body);
+    }
+
 
     @Async
     public void sendBookingConfirmation(User guest, Booking booking) {

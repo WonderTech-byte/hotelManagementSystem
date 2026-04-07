@@ -36,11 +36,12 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
 
 
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/**",
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html"
+                        ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/rooms/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/features/**").permitAll()
-
-
                 .requestMatchers(HttpMethod.POST, "/api/bookings").hasRole("GUEST")
                 .requestMatchers(HttpMethod.GET, "/api/bookings/my").hasRole("GUEST")
                 .requestMatchers(HttpMethod.PATCH, "/api/bookings/*/cancel").hasRole("GUEST")
@@ -54,8 +55,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/rooms/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("ADMIN")
-                .requestMatchers("/api/features/categories/**").hasRole("ADMIN")
-                .requestMatchers("/api/features/types/**").hasRole("ADMIN")
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
 
                 .anyRequest().authenticated()

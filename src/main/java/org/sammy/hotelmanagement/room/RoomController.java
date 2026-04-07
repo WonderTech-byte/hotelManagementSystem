@@ -33,8 +33,8 @@ public class RoomController {
     }
 
 
-    @PostMapping
-    public ResponseEntity<RoomDTO> createRoom(@Valid @RequestBody CreateRoomDTO dto) {
+    @PostMapping(consumes = {"multipart/form-data"})
+    public ResponseEntity<RoomDTO> createRoom(@Valid CreateRoomDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(roomService.createRoom(dto));
     }
 
@@ -52,24 +52,25 @@ public class RoomController {
     }
 
 
-    @PostMapping("/{roomId}/images")
-    public ResponseEntity<ImageDTO> addImage(
+    @PostMapping(value = "/{roomId}/images", consumes = {"multipart/form-data"})
+    public ResponseEntity<RoomDTO> addImage(
             @PathVariable Long roomId,
-            @Valid @RequestBody AddImageDTO dto) {
+            @Valid AddImageDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(roomService.addImage(roomId, dto));
     }
 
-    @DeleteMapping("/images/{imageId}")
-    public ResponseEntity<Void> deleteImage(@PathVariable Long imageId) {
-        roomService.deleteImage(imageId);
-        return ResponseEntity.noContent().build();
+    @DeleteMapping("/{roomId}/images")
+    public ResponseEntity<RoomDTO> deleteImage(
+            @PathVariable Long roomId,
+            @RequestParam String imageUrl) {
+        return ResponseEntity.ok(roomService.deleteImage(roomId, imageUrl));
     }
 
 
-    @PostMapping("/{roomId}/features")
+    @PostMapping(value = "/{roomId}/features", consumes = {"multipart/form-data"})
     public ResponseEntity<RoomFeatureDTO> addFeature(
             @PathVariable Long roomId,
-            @Valid @RequestBody AddRoomFeatureDTO dto) {
+            @Valid AddRoomFeatureDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(roomService.addFeature(roomId, dto));
     }

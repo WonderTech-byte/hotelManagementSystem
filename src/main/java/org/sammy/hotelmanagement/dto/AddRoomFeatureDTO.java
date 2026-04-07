@@ -1,11 +1,12 @@
 package org.sammy.hotelmanagement.dto;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 public class AddRoomFeatureDTO {
-    @NotNull public Long featureTypeId;
-    public String customDescription;
-    public int displayOrder = 0;
+    @NotBlank public String roomFeature;
+    public String description;
+    public MultipartFile imageFile;
 }

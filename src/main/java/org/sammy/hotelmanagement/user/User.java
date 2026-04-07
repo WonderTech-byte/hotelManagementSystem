@@ -41,6 +41,10 @@ public class User {
     @Column(nullable = false)
     private boolean isActive = true;
 
+    private String passwordResetToken;
+
+    private LocalDateTime passwordResetTokenExpiresAt;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

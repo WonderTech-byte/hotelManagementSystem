@@ -11,8 +11,7 @@ import java.util.Optional;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findByBookingCode(String bookingCode);
     List<Booking> findByGuestId(Long guestId);
-    List<Booking> findByRoomId(Long roomId);
-    List<Booking> findByStatus(BookingStatus status);
+
 
 
     @Query("SELECT b FROM Booking b WHERE b.status = 'CONFIRMED' AND b.checkInDate < :today")

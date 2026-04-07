@@ -23,13 +23,10 @@ public class RoomFeature {
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "feature_type_id", nullable = false)
-    private FeatureType featureType;
-
-
-    private String customDescription;
-
     @Column(nullable = false)
-    private int displayOrder = 0;
+    private String name;
+
+    private String description;
+
+    private String imageUrl;
 }

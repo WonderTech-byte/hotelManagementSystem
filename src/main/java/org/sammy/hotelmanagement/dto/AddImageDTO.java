@@ -1,12 +1,11 @@
 package org.sammy.hotelmanagement.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 public class AddImageDTO {
-    @NotBlank public String url;
-    public String altText;
-    public boolean isPrimary = false;
-    public int displayOrder = 0;
+    @NotNull(message = "Please select a file to upload")
+    private MultipartFile file;
 }
