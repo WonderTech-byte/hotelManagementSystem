@@ -2,7 +2,7 @@ package org.sammy.hotelmanagement.room;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.sammy.hotelmanagement.dto.*;
+import org.sammy.hotelmanagement.room.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

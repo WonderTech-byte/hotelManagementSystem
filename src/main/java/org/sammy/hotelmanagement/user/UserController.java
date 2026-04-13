@@ -1,7 +1,7 @@
 package org.sammy.hotelmanagement.user;
 
 import lombok.RequiredArgsConstructor;
-import org.sammy.hotelmanagement.dto.UserDTO;
+import org.sammy.hotelmanagement.user.dto.UserDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,13 +26,13 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
-    // ADMIN — get users by type (e.g. /api/users/type/FRONT_DESK)
+
     @GetMapping("/type/{userType}")
     public ResponseEntity<List<UserDTO>> getUsersByType(@PathVariable UserType userType) {
         return ResponseEntity.ok(userService.getUsersByType(userType));
     }
 
-    // ADMIN — deactivate a user (soft delete)
+    // ADMIN — deactivate a user
     @PatchMapping("/{id}/deactivate")
     public ResponseEntity<UserDTO> deactivateUser(@PathVariable Long id) {
         return ResponseEntity.ok(userService.deactivateUser(id));
@@ -50,5 +50,15 @@ public class UserController {
             @PathVariable Long id,
             @PathVariable UserType userType) {
         return ResponseEntity.ok(userService.changeUserType(id, userType));
+    }
+
+    @PatchMapping("/{id}/promote/admin")
+    public ResponseEntity<UserDTO> promoteToAdmin(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.promoteToAdmin(id));
+    }
+
+    @PatchMapping("/{id}/promote/front-desk")
+    public ResponseEntity<UserDTO> promoteToFrontDesk(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.promoteToFrontDesk(id));
     }
 }

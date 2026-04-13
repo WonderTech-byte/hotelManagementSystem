@@ -6,7 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
-import org.sammy.hotelmanagement.dto.*;
+import org.sammy.hotelmanagement.exception.BadRequestException;
+import org.sammy.hotelmanagement.exception.ConflictException;
+import org.sammy.hotelmanagement.exception.NotFoundException;
+import org.sammy.hotelmanagement.room.dto.*;
 import org.sammy.hotelmanagement.feature.*;
 import org.sammy.hotelmanagement.image.ImageService;
 import org.springframework.stereotype.Service;
@@ -32,7 +35,7 @@ public class RoomService {
     @Transactional
     public RoomDTO createRoom(CreateRoomDTO dto) {
         if (roomRepository.existsByRoomNumber(dto.roomNumber)) {
-            throw new RuntimeException("Room number already exists: " + dto.roomNumber);
+            throw new ConflictException("Room number already exists: " + dto.roomNumber);
         }
 
         Room room = Room.builder()
@@ -57,7 +60,7 @@ public class RoomService {
 
         for (AddRoomFeatureDTO featDto : parseFeatures(dto.features)) {
             if (roomFeatureRepository.existsByRoomAndNameIgnoreCase(room.getId(), featDto.roomFeature)) {
-                throw new RuntimeException("Duplicate feature provided for this room: " + featDto.roomFeature);
+                throw new ConflictException("Duplicate feature provided for this room: " + featDto.roomFeature);
             }
 
             RoomFeature feature = RoomFeature.builder()
@@ -81,7 +84,7 @@ public class RoomService {
         try {
             features = objectMapper.readValue(featuresJson, new TypeReference<>() {});
         } catch (JsonProcessingException ex) {
-            throw new RuntimeException("Invalid features JSON. Expected a JSON array of feature objects.", ex);
+            throw new BadRequestException("Invalid features JSON. Expected a JSON array of feature objects.");
         }
 
         if (features == null) {
@@ -91,7 +94,7 @@ public class RoomService {
         for (int i = 0; i < features.size(); i++) {
             AddRoomFeatureDTO feature = features.get(i);
             if (feature == null) {
-                throw new RuntimeException("Invalid features JSON. Feature at index " + i + " must be an object.");
+                throw new BadRequestException("Invalid features JSON. Feature at index " + i + " must be an object.");
             }
 
             Set<ConstraintViolation<AddRoomFeatureDTO>> violations = validator.validate(feature);
@@ -100,7 +103,7 @@ public class RoomService {
                         .map(ConstraintViolation::getMessage)
                         .sorted()
                         .collect(Collectors.joining(", "));
-                throw new RuntimeException("Invalid feature at index " + i + ": " + message);
+                throw new BadRequestException("Invalid feature at index " + i + ": " + message);
             }
         }
 
@@ -120,7 +123,7 @@ public class RoomService {
 
     public RoomDTO getRoomById(Long id) {
         return toDTO(roomRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Room not found: " + id)));
+                .orElseThrow(() -> new NotFoundException("Room not found: " + id)));
     }
 
 
@@ -128,7 +131,7 @@ public class RoomService {
     @Transactional
     public RoomDTO updateRoom(Long id, UpdateRoomDTO dto) {
         Room room = roomRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Room not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Room not found: " + id));
 
         if (dto.roomType != null) room.setRoomType(dto.roomType);
         if (dto.price != null) room.setPrice(dto.price);
@@ -144,7 +147,7 @@ public class RoomService {
     @Transactional
     public RoomDTO addImage(Long roomId, AddImageDTO dto) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("Room not found: " + roomId));
+                .orElseThrow(() -> new NotFoundException("Room not found: " + roomId));
 
         String uploadedImageUrl = imageService.uploadRoomImage(roomId, dto);
 
@@ -165,10 +168,10 @@ public class RoomService {
     @Transactional
     public RoomFeatureDTO addFeature(Long roomId, AddRoomFeatureDTO dto) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("Room not found: " + roomId));
+                .orElseThrow(() -> new NotFoundException("Room not found: " + roomId));
 
         if (roomFeatureRepository.existsByRoomAndNameIgnoreCase(roomId, dto.roomFeature)) {
-            throw new RuntimeException("Feature already added to this room");
+            throw new ConflictException("Feature already added to this room");
         }
 
         RoomFeature feature = RoomFeature.builder()
@@ -186,7 +189,7 @@ public class RoomService {
     @Transactional
     public void deleteRoom(Long id) {
         if (!roomRepository.existsById(id)) {
-            throw new RuntimeException("Room not found: " + id);
+            throw new NotFoundException("Room not found: " + id);
         }
         roomRepository.deleteById(id);
     }
@@ -194,14 +197,14 @@ public class RoomService {
     @Transactional
     public RoomDTO deleteImage(Long roomId, String imageUrl) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("Room not found: " + roomId));
+                .orElseThrow(() -> new NotFoundException("Room not found: " + roomId));
         if (imageUrl == null || imageUrl.isBlank()) {
-            throw new RuntimeException("Image URL is required");
+            throw new BadRequestException("Image URL is required");
         }
 
         boolean removed = room.getImageUrls().removeIf(existingUrl -> existingUrl.equals(imageUrl));
         if (!removed) {
-            throw new RuntimeException("Image URL not found for room: " + roomId);
+            throw new NotFoundException("Image URL not found for room: " + roomId);
         }
 
         return toDTO(roomRepository.save(room));

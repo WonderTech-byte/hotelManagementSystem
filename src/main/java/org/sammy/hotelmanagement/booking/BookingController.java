@@ -2,8 +2,8 @@ package org.sammy.hotelmanagement.booking;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.sammy.hotelmanagement.dto.BookingRequestDTO;
-import org.sammy.hotelmanagement.dto.BookingResponseDTO;
+import org.sammy.hotelmanagement.booking.dto.BookingRequestDTO;
+import org.sammy.hotelmanagement.booking.dto.BookingResponseDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

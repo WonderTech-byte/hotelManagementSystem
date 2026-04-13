@@ -3,7 +3,8 @@ package org.sammy.hotelmanagement.image;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
-import org.sammy.hotelmanagement.dto.AddImageDTO;
+import org.sammy.hotelmanagement.exception.BadRequestException;
+import org.sammy.hotelmanagement.room.dto.AddImageDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,19 +32,20 @@ public class ImageService {
     private String uploadImage(String folder, MultipartFile file) {
         try {
             if (file == null || file.isEmpty()) {
-                throw new RuntimeException("Please select a file to upload");
+                throw new BadRequestException("Please select a file to upload");
             }
 
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap("folder", folder));
 
-            String generatedUrl = uploadResult.get("secure_url").toString();
+            Object secureUrl = uploadResult.get("secure_url");
+            String generatedUrl = secureUrl == null ? null : secureUrl.toString();
             if (generatedUrl == null || generatedUrl.isBlank()) {
-                throw new RuntimeException("Cloudinary did not return an image URL");
+                throw new BadRequestException("Cloudinary did not return an image URL");
             }
             return generatedUrl;
         } catch (IOException e) {
-            throw new RuntimeException("Failed to upload image to Cloudinary", e);
+            throw new BadRequestException("Failed to upload image to Cloudinary");
         }
     }
 
