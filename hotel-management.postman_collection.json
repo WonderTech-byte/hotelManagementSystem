@@ -1,0 +1,568 @@
+{
+  "info": {
+    "name": "Hotel Management System API",
+    "description": "Scenario-based Postman collection for Hotel Management System. Uses an existing admin account, registers normal users, promotes one to front desk, and covers both happy and unhappy paths across available endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080" },
+    { "key": "admin_username", "value": "sammy223" },
+    { "key": "admin_password", "value": "samuel22" },
+    { "key": "frontdesk_full_name", "value": "Front Desk Candidate" },
+    { "key": "frontdesk_username", "value": "frontdesk_candidate_01" },
+    { "key": "frontdesk_email", "value": "frontdesk_candidate_01@example.com" },
+    { "key": "frontdesk_password", "value": "password123" },
+    { "key": "guest_full_name", "value": "Guest Demo" },
+    { "key": "guest_username", "value": "guest_demo_01" },
+    { "key": "guest_email", "value": "guest_demo_01@example.com" },
+    { "key": "guest_password", "value": "password123" },
+    { "key": "admin_token", "value": "" },
+    { "key": "frontdesk_token", "value": "" },
+    { "key": "guest_token", "value": "" },
+    { "key": "admin_user_id", "value": "" },
+    { "key": "frontdesk_user_id", "value": "" },
+    { "key": "guest_user_id", "value": "" },
+    { "key": "room_id", "value": "1" },
+    { "key": "booking_id", "value": "1" },
+    { "key": "booking_code", "value": "BOOKING-CODE" },
+    { "key": "image_url", "value": "https://example.com/room-image.jpg" },
+    { "key": "room_image_file", "value": "/absolute/path/to/room-image.jpg" },
+    { "key": "feature_image_file", "value": "/absolute/path/to/feature-image.jpg" },
+    { "key": "future_checkin_date", "value": "2026-05-01" },
+    { "key": "future_checkout_date", "value": "2026-05-03" },
+    { "key": "invalid_reset_token", "value": "invalid-reset-token" },
+    { "key": "missing_image_url", "value": "https://example.com/not-found.jpg" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "var auth = pm.request.auth;",
+          "if (auth && auth.type === 'bearer') {",
+          "  var tokenEntry = auth.bearer && auth.bearer.find(function (item) { return item.key === 'token'; });",
+          "  if (tokenEntry) {",
+          "    var token = pm.variables.replaceIn(tokenEntry.value || '');",
+          "    if (!token || token.indexOf('{{') !== -1) {",
+          "      throw new Error('Missing bearer token for request: ' + pm.info.requestName);",
+          "    }",
+          "  }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Admin Login Happy",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{admin_username}}\",\n  \"password\": \"{{admin_password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{base_url}}/api/auth/login"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Admin login returns 200', function () { pm.response.to.have.status(200); });","var json = pm.response.json(); pm.collectionVariables.set('admin_token', json.token); if (json.user && json.user.id) pm.collectionVariables.set('admin_user_id', String(json.user.id));"]}}]
+        },
+        {
+          "name": "Login Unhappy Wrong Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{admin_username}}\",\n  \"password\": \"wrong-password\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{base_url}}/api/auth/login"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Wrong password returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Register Front Desk Candidate Happy",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"{{frontdesk_full_name}}\",\n  \"username\": \"{{frontdesk_username}}\",\n  \"email\": \"{{frontdesk_email}}\",\n  \"password\": \"{{frontdesk_password}}\",\n  \"phoneNumber\": \"08020000000\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{base_url}}/api/auth/register"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Front desk candidate register returns 200 or 400 on rerun', function () { pm.expect([200,400]).to.include(pm.response.code); });","if (pm.response.code === 200) { var json = pm.response.json(); if (json.user && json.user.id) pm.collectionVariables.set('frontdesk_user_id', String(json.user.id)); }"]}}]
+        },
+        {
+          "name": "Register Guest Happy",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"{{guest_full_name}}\",\n  \"username\": \"{{guest_username}}\",\n  \"email\": \"{{guest_email}}\",\n  \"password\": \"{{guest_password}}\",\n  \"phoneNumber\": \"08030000000\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{base_url}}/api/auth/register"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Guest register returns 200 or 400 on rerun', function () { pm.expect([200,400]).to.include(pm.response.code); });","if (pm.response.code === 200) { var json = pm.response.json(); pm.collectionVariables.set('guest_token', json.token || ''); if (json.user && json.user.id) pm.collectionVariables.set('guest_user_id', String(json.user.id)); }"]}}]
+        },
+        {
+          "name": "Register Unhappy Duplicate Guest",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"{{guest_full_name}}\",\n  \"username\": \"{{guest_username}}\",\n  \"email\": \"{{guest_email}}\",\n  \"password\": \"{{guest_password}}\",\n  \"phoneNumber\": \"08030000000\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{base_url}}/api/auth/register"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Duplicate register returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Register Unhappy Missing Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Broken User\",\n  \"username\": \"broken_user\",\n  \"email\": \"broken@example.com\",\n  \"phoneNumber\": \"08039999999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{base_url}}/api/auth/register"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Missing password returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Front Desk Candidate Login Before Promotion Happy",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{frontdesk_username}}\",\n  \"password\": \"{{frontdesk_password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{base_url}}/api/auth/login"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Candidate login returns 200', function () { pm.response.to.have.status(200); });","var json = pm.response.json(); if (json.user && json.user.id) pm.collectionVariables.set('frontdesk_user_id', String(json.user.id));"]}}]
+        },
+        {
+          "name": "Guest Login Happy",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{guest_username}}\",\n  \"password\": \"{{guest_password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{base_url}}/api/auth/login"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Guest login returns 200', function () { pm.response.to.have.status(200); });","var json = pm.response.json(); pm.collectionVariables.set('guest_token', json.token); if (json.user && json.user.id) pm.collectionVariables.set('guest_user_id', String(json.user.id));"]}}]
+        },
+        {
+          "name": "Forgot Password Happy",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {"mode":"raw","raw":"{\n  \"email\": \"{{guest_email}}\"\n}","options":{"raw":{"language":"json"}}},
+            "url": "{{base_url}}/api/auth/forgot-password"
+          }
+        },
+        {
+          "name": "Forgot Password Unhappy Unknown Email",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {"mode":"raw","raw":"{\n  \"email\": \"unknown-user@example.com\"\n}","options":{"raw":{"language":"json"}}},
+            "url": "{{base_url}}/api/auth/forgot-password"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Unknown email returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Reset Password Unhappy Invalid Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {"mode":"raw","raw":"{\n  \"token\": \"{{invalid_reset_token}}\",\n  \"newPassword\": \"newpassword123\"\n}","options":{"raw":{"language":"json"}}},
+            "url": "{{base_url}}/api/auth/reset-password"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Invalid token returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        }
+      ]
+    },
+    {
+      "name": "Users Admin",
+      "item": [
+        {
+          "name": "Get All Users Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method": "GET",
+            "url": "{{base_url}}/api/users"
+          }
+        },
+        {
+          "name": "Get All Users Unhappy No Auth",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('No auth returns 401 or 403', function () { pm.expect([401,403]).to.include(pm.response.code); });"]}}]
+        },
+        {
+          "name": "Promote Candidate To Front Desk Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method": "PATCH",
+            "url": "{{base_url}}/api/users/{{frontdesk_user_id}}/promote/front-desk"
+          }
+        },
+        {
+          "name": "Promote Guest To Admin Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method": "PATCH",
+            "url": "{{base_url}}/api/users/{{guest_user_id}}/promote/admin"
+          }
+        },
+        {
+          "name": "Promote Guest To Front Desk Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method": "PATCH",
+            "url": "{{base_url}}/api/users/{{guest_user_id}}/promote/front-desk"
+          }
+        },
+        {
+          "name": "Promote Unhappy Invalid User",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method": "PATCH",
+            "url": "{{base_url}}/api/users/999999/promote/front-desk"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Invalid user returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Login Front Desk Happy",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{frontdesk_username}}\",\n  \"password\": \"{{frontdesk_password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{base_url}}/api/auth/login"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Front desk login returns 200 after promotion', function () { pm.response.to.have.status(200); });","var json = pm.response.json(); pm.collectionVariables.set('frontdesk_token', json.token); if (json.user && json.user.id) pm.collectionVariables.set('frontdesk_user_id', String(json.user.id));"]}}]
+        },
+        {
+          "name": "Deactivate Front Desk Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method": "PATCH",
+            "url": "{{base_url}}/api/users/{{frontdesk_user_id}}/deactivate"
+          }
+        },
+        {
+          "name": "Activate Front Desk Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method": "PATCH",
+            "url": "{{base_url}}/api/users/{{frontdesk_user_id}}/activate"
+          }
+        },
+        {
+          "name": "Get Users By Type Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method": "GET",
+            "url": "{{base_url}}/api/users/type/GUEST"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rooms",
+      "item": [
+        {
+          "name": "Get All Rooms Happy",
+          "request": {"method":"GET","url":"{{base_url}}/api/rooms"},
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Get rooms returns 200', function () { pm.response.to.have.status(200); });","var json = pm.response.json(); if (Array.isArray(json) && json.length > 0 && json[0].id) pm.collectionVariables.set('room_id', String(json[0].id));"]}}]
+        },
+        {
+          "name": "Get Available Rooms Happy",
+          "request": {"method":"GET","url":"{{base_url}}/api/rooms/available"}
+        },
+        {
+          "name": "Get Room By Id Happy",
+          "request": {"method":"GET","url":"{{base_url}}/api/rooms/{{room_id}}"}
+        },
+        {
+          "name": "Get Room By Id Unhappy Invalid Id",
+          "request": {"method":"GET","url":"{{base_url}}/api/rooms/999999"},
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Invalid room id returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Create Room Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method":"POST",
+            "body":{"mode":"formdata","formdata":[
+              {"key":"roomNumber","value":"A101","type":"text"},
+              {"key":"roomType","value":"SINGLE","type":"text"},
+              {"key":"price","value":"150","type":"text"},
+              {"key":"priceType","value":"PER_NIGHT","type":"text"},
+              {"key":"description","value":"Ocean-facing single room","type":"text"},
+              {"key":"features","value":"[{\"roomFeature\":\"Ocean View\",\"description\":\"Faces the beach\"}]","type":"text"},
+              {"key":"imageFiles","type":"file","src":"{{room_image_file}}"}
+            ]},
+            "url":"{{base_url}}/api/rooms"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Create room returns 201 or 400 on rerun', function () { pm.expect([201,400]).to.include(pm.response.code); });","if (pm.response.code === 201) { var json = pm.response.json(); if (json.id) pm.collectionVariables.set('room_id', String(json.id)); if (json.imageUrls && json.imageUrls.length > 0) pm.collectionVariables.set('image_url', json.imageUrls[0]); }"]}}]
+        },
+        {
+          "name": "Create Room Unhappy No Auth",
+          "request": {
+            "method":"POST",
+            "body":{"mode":"formdata","formdata":[
+              {"key":"roomNumber","value":"A102","type":"text"},
+              {"key":"roomType","value":"DOUBLE","type":"text"},
+              {"key":"price","value":"250","type":"text"},
+              {"key":"priceType","value":"PER_NIGHT","type":"text"}
+            ]},
+            "url":"{{base_url}}/api/rooms"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('No auth returns 401 or 403', function () { pm.expect([401,403]).to.include(pm.response.code); });"]}}]
+        },
+        {
+          "name": "Create Room Unhappy Missing Required Fields",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method":"POST",
+            "body":{"mode":"formdata","formdata":[
+              {"key":"roomNumber","value":"A103","type":"text"}
+            ]},
+            "url":"{{base_url}}/api/rooms"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Missing fields returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Update Room Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method":"PUT",
+            "header":[{"key":"Content-Type","value":"application/json"}],
+            "body":{"mode":"raw","raw":"{\n  \"price\": 175,\n  \"status\": \"AVAILABLE\",\n  \"description\": \"Updated room description\"\n}","options":{"raw":{"language":"json"}}},
+            "url":"{{base_url}}/api/rooms/{{room_id}}"
+          }
+        },
+        {
+          "name": "Update Room Unhappy Invalid Id",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method":"PUT",
+            "header":[{"key":"Content-Type","value":"application/json"}],
+            "body":{"mode":"raw","raw":"{\n  \"price\": 175\n}","options":{"raw":{"language":"json"}}},
+            "url":"{{base_url}}/api/rooms/999999"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Invalid room update returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Add Room Image Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method":"POST",
+            "body":{"mode":"formdata","formdata":[{"key":"file","type":"file","src":"{{room_image_file}}"}]},
+            "url":"{{base_url}}/api/rooms/{{room_id}}/images"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Add image returns 201', function () { pm.response.to.have.status(201); });","var json = pm.response.json(); if (json.imageUrls && json.imageUrls.length > 0) pm.collectionVariables.set('image_url', json.imageUrls[json.imageUrls.length - 1]);"]}}]
+        },
+        {
+          "name": "Add Room Image Unhappy Missing File",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method":"POST",
+            "body":{"mode":"formdata","formdata":[]},
+            "url":"{{base_url}}/api/rooms/{{room_id}}/images"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Missing file returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Delete Room Image Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method":"DELETE",
+            "url":"{{base_url}}/api/rooms/{{room_id}}/images?imageUrl={{image_url}}"
+          }
+        },
+        {
+          "name": "Delete Room Image Unhappy Missing Image",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method":"DELETE",
+            "url":"{{base_url}}/api/rooms/{{room_id}}/images?imageUrl={{missing_image_url}}"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Missing image url returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Add Room Feature Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method":"POST",
+            "body":{"mode":"formdata","formdata":[
+              {"key":"roomFeature","value":"Mini Bar","type":"text"},
+              {"key":"description","value":"Stocked on request","type":"text"},
+              {"key":"imageFile","type":"file","src":"{{feature_image_file}}"}
+            ]},
+            "url":"{{base_url}}/api/rooms/{{room_id}}/features"
+          }
+        },
+        {
+          "name": "Add Room Feature Unhappy Missing Name",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{admin_token}}","type":"string"}]},
+            "method":"POST",
+            "body":{"mode":"formdata","formdata":[{"key":"description","value":"Missing roomFeature","type":"text"}]},
+            "url":"{{base_url}}/api/rooms/{{room_id}}/features"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Missing roomFeature returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create Booking Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{guest_token}}","type":"string"}]},
+            "method":"POST",
+            "header":[{"key":"Content-Type","value":"application/json"}],
+            "body":{"mode":"raw","raw":"{\n  \"roomId\": {{room_id}},\n  \"checkInDate\": \"{{future_checkin_date}}\",\n  \"checkOutDate\": \"{{future_checkout_date}}\",\n  \"numberOfUnits\": 1\n}","options":{"raw":{"language":"json"}}},
+            "url":"{{base_url}}/api/bookings"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Create booking returns 201', function () { pm.response.to.have.status(201); });","var json = pm.response.json(); if (json.id) pm.collectionVariables.set('booking_id', String(json.id)); if (json.bookingCode) pm.collectionVariables.set('booking_code', json.bookingCode);"]}}]
+        },
+        {
+          "name": "Create Booking Unhappy No Auth",
+          "request": {
+            "method":"POST",
+            "header":[{"key":"Content-Type","value":"application/json"}],
+            "body":{"mode":"raw","raw":"{\n  \"roomId\": {{room_id}},\n  \"checkInDate\": \"{{future_checkin_date}}\",\n  \"checkOutDate\": \"{{future_checkout_date}}\",\n  \"numberOfUnits\": 1\n}","options":{"raw":{"language":"json"}}},
+            "url":"{{base_url}}/api/bookings"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('No auth returns 401 or 403', function () { pm.expect([401,403]).to.include(pm.response.code); });"]}}]
+        },
+        {
+          "name": "Create Booking Unhappy Invalid Date Range",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{guest_token}}","type":"string"}]},
+            "method":"POST",
+            "header":[{"key":"Content-Type","value":"application/json"}],
+            "body":{"mode":"raw","raw":"{\n  \"roomId\": {{room_id}},\n  \"checkInDate\": \"2026-05-05\",\n  \"checkOutDate\": \"2026-05-01\",\n  \"numberOfUnits\": 1\n}","options":{"raw":{"language":"json"}}},
+            "url":"{{base_url}}/api/bookings"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Invalid date range returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Create Booking Unhappy Invalid Room",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{guest_token}}","type":"string"}]},
+            "method":"POST",
+            "header":[{"key":"Content-Type","value":"application/json"}],
+            "body":{"mode":"raw","raw":"{\n  \"roomId\": 999999,\n  \"checkInDate\": \"{{future_checkin_date}}\",\n  \"checkOutDate\": \"{{future_checkout_date}}\",\n  \"numberOfUnits\": 1\n}","options":{"raw":{"language":"json"}}},
+            "url":"{{base_url}}/api/bookings"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Invalid room returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Get My Bookings Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{guest_token}}","type":"string"}]},
+            "method":"GET",
+            "url":"{{base_url}}/api/bookings/my"
+          }
+        },
+        {
+          "name": "Get All Bookings Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{frontdesk_token}}","type":"string"}]},
+            "method":"GET",
+            "url":"{{base_url}}/api/bookings"
+          }
+        },
+        {
+          "name": "Get All Bookings Unhappy Guest Forbidden",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{guest_token}}","type":"string"}]},
+            "method":"GET",
+            "url":"{{base_url}}/api/bookings"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Guest should be rejected', function () { pm.expect([401,403]).to.include(pm.response.code); });"]}}]
+        },
+        {
+          "name": "Get Booking By Code Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{frontdesk_token}}","type":"string"}]},
+            "method":"GET",
+            "url":"{{base_url}}/api/bookings/{{booking_code}}"
+          }
+        },
+        {
+          "name": "Check In Booking Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{frontdesk_token}}","type":"string"}]},
+            "method":"PATCH",
+            "url":"{{base_url}}/api/bookings/{{booking_code}}/checkin"
+          }
+        },
+        {
+          "name": "Check In Booking Unhappy Already Checked In",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{frontdesk_token}}","type":"string"}]},
+            "method":"PATCH",
+            "url":"{{base_url}}/api/bookings/{{booking_code}}/checkin"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Repeated check-in returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Check Out Booking Happy",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{frontdesk_token}}","type":"string"}]},
+            "method":"PATCH",
+            "url":"{{base_url}}/api/bookings/{{booking_code}}/checkout"
+          }
+        },
+        {
+          "name": "Check Out Booking Unhappy Already Checked Out",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{frontdesk_token}}","type":"string"}]},
+            "method":"PATCH",
+            "url":"{{base_url}}/api/bookings/{{booking_code}}/checkout"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Repeated check-out returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        },
+        {
+          "name": "Cancel Booking Unhappy After Check-Out",
+          "request": {
+            "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{guest_token}}","type":"string"}]},
+            "method":"PATCH",
+            "url":"{{base_url}}/api/bookings/{{booking_id}}/cancel"
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('Cancel after status change returns 400', function () { pm.response.to.have.status(400); });"]}}]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,674 @@
+HOTEL MANAGEMENT SYSTEM API DOCUMENTATION
+=========================================
+
+Project: HotelManagementSystem
+Document type: Plain-text API reference
+Generated from: source controllers/DTOs under src/main/java and compiled feature endpoints under target/classes
+
+
+1. OVERVIEW
+-----------
+Base path groups:
+- /api/auth
+- /api/rooms
+- /api/bookings
+- /api/users
+- /api/features   (present in compiled classes; source controller is missing from src)
+
+Authentication:
+- JWT bearer authentication is used for protected endpoints.
+- Public endpoints:
+  - /api/auth/**
+  - GET /api/rooms/**
+- Role-restricted endpoints:
+  - GUEST:
+    - POST /api/bookings
+    - GET /api/bookings/my
+    - PATCH /api/bookings/{id}/cancel
+  - FRONT_DESK or ADMIN:
+    - PATCH /api/bookings/{bookingCode}/checkin
+    - PATCH /api/bookings/{bookingCode}/checkout
+    - GET /api/bookings
+    - GET /api/bookings/{bookingCode}
+  - ADMIN:
+    - POST /api/rooms/**
+    - PUT /api/rooms/**
+    - DELETE /api/rooms/**
+    - /api/users/**
+- Security config in source does not explicitly mention /api/features/**. That means these endpoints fall through to authenticated access unless additional rules exist elsewhere.
+
+Common response content:
+- Most endpoints return JSON.
+- Multipart endpoints accept form-data and may still return JSON.
+
+
+2. ENUM VALUES
+--------------
+RoomType:
+- SINGLE
+- DOUBLE
+- SUITE
+
+PriceType:
+- PER_NIGHT
+- PER_DAY
+
+RoomStatus:
+- AVAILABLE
+- BOOKED
+- OCCUPIED
+
+UserType:
+- ADMIN
+- FRONT_DESK
+- GUEST
+
+BookingStatus:
+- CONFIRMED
+- CHECKED_IN
+- CHECKED_OUT
+- CANCELLED
+- NO_SHOW
+
+
+3. SHARED ERROR RESPONSE
+------------------------
+Validation and runtime errors are returned as JSON with this shape:
+
+{
+  "timestamp": "2026-04-07T12:34:56",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation failed",
+  "path": "/api/auth/register",
+  "details": [
+    "email: must be a well-formed email address",
+    "password: size must be between 6 and 2147483647"
+  ]
+}
+
+Fields:
+- timestamp: LocalDateTime
+- status: HTTP status code
+- error: HTTP reason phrase
+- message: summary message
+- path: request URI
+- details: list of validation/detail messages
+
+Typical failure status observed in code:
+- 400 Bad Request
+
+
+4. AUTH API
+-----------
+
+4.1 POST /api/auth/register
+Auth:
+- Public
+Content-Type:
+- application/json
+Request DTO:
+- RegisterRequestDTO
+
+Schema:
+{
+  "fullName": "string",        // required, not blank
+  "username": "string",        // required, not blank, must be unique
+  "email": "user@example.com", // required, not blank, valid email, must be unique
+  "password": "string",        // required, not blank, minimum length 6
+  "phoneNumber": "string",     // optional
+  "userType": "GUEST"          // required by DTO; service defaults to GUEST only if null slips through
+}
+
+Success response:
+- 200 OK
+- AuthResponseDTO
+
+Response shape:
+{
+  "token": "jwt-token",
+  "user": {
+    "id": 1,
+    "fullName": "string",
+    "username": "string",
+    "email": "string",
+    "phoneNumber": "string",
+    "userType": "ADMIN | FRONT_DESK | GUEST",
+    "active": true,
+    "createdAt": "2026-04-07T12:34:56"
+  }
+}
+
+Notes:
+- Duplicate username returns 400 with message "Username already taken".
+- Duplicate email returns 400 with message "Email already registered".
+
+
+4.2 POST /api/auth/login
+Auth:
+- Public
+Content-Type:
+- application/json
+Request DTO:
+- LoginRequestDTO
+
+Schema:
+{
+  "username": "string", // required, not blank
+  "password": "string"  // required, not blank
+}
+
+Success response:
+- 200 OK
+- AuthResponseDTO
+
+Notes:
+- Invalid credentials return 400 with message "Invalid username or password".
+
+
+4.3 POST /api/auth/forgot-password
+Auth:
+- Public
+Content-Type:
+- application/json
+Request DTO:
+- ForgotPasswordRequestDTO
+
+Schema:
+{
+  "email": "user@example.com" // required, not blank, valid email
+}
+
+Success response:
+- 200 OK
+- MessageResponseDTO
+
+Response shape:
+{
+  "message": "Password reset instructions have been sent to your email"
+}
+
+Notes:
+- If email is not found, returns 400 with message "User with this email was not found".
+
+
+4.4 POST /api/auth/reset-password
+Auth:
+- Public
+Content-Type:
+- application/json
+Request DTO:
+- ResetPasswordRequestDTO
+
+Schema:
+{
+  "token": "reset-token",      // required, not blank
+  "newPassword": "string"      // required, not blank, minimum length 6
+}
+
+Success response:
+- 200 OK
+- MessageResponseDTO
+
+Response shape:
+{
+  "message": "Password has been reset successfully"
+}
+
+Notes:
+- Invalid token returns 400 with message "Invalid password reset token".
+- Expired token returns 400 with message "Password reset token has expired".
+
+
+5. ROOM API
+-----------
+
+5.1 GET /api/rooms
+Auth:
+- Public
+Response:
+- 200 OK
+- List<RoomDTO>
+
+RoomDTO shape:
+{
+  "id": 1,
+  "roomNumber": "A101",
+  "roomType": "SINGLE | DOUBLE | SUITE",
+  "price": 150.0,
+  "priceType": "PER_NIGHT | PER_DAY",
+  "status": "AVAILABLE | BOOKED | OCCUPIED",
+  "description": "string",
+  "createdAt": "2026-04-07T12:34:56",
+  "features": [
+    {
+      "id": 1,
+      "roomFeature": "WiFi",
+      "description": "string",
+      "imageUrl": "https://..."
+    }
+  ],
+  "imageUrls": ["https://..."]
+}
+
+
+5.2 GET /api/rooms/available
+Auth:
+- Public
+Response:
+- 200 OK
+- List<RoomDTO>
+
+
+5.3 GET /api/rooms/{id}
+Auth:
+- Public
+Path params:
+- id: Long
+Response:
+- 200 OK
+- RoomDTO
+
+
+5.4 POST /api/rooms
+Auth:
+- ADMIN
+Content-Type:
+- multipart/form-data
+Request DTO:
+- CreateRoomDTO
+
+Form-data schema:
+- roomNumber: string, required, not blank
+- roomType: enum RoomType, required
+- price: number, required, positive
+- priceType: enum PriceType, required
+- description: string, optional
+- imageFiles: file[], optional
+- features: string, optional
+
+Important note about features:
+- `features` is not a nested JSON body field in an application/json request.
+- It is a multipart text field containing a JSON array string.
+- Each item in that JSON array follows AddRoomFeatureDTO shape:
+  {
+    "roomFeature": "string",   // required, not blank
+    "description": "string"    // optional
+  }
+- `imageFile` exists on AddRoomFeatureDTO but is not parsed from the `features` JSON string during room creation.
+
+Example multipart text value for `features`:
+[
+  {
+    "roomFeature": "Ocean View",
+    "description": "Faces the beach"
+  },
+  {
+    "roomFeature": "Mini Bar",
+    "description": "Stocked on request"
+  }
+]
+
+Success response:
+- 201 Created
+- RoomDTO
+
+Notes:
+- Duplicate room number returns 400.
+- Invalid `features` JSON returns 400 with message similar to:
+  - "Invalid features JSON. Expected a JSON array of feature objects."
+- Duplicate feature name inside a room returns 400.
+
+
+5.5 PUT /api/rooms/{id}
+Auth:
+- ADMIN
+Content-Type:
+- application/json
+Request DTO:
+- UpdateRoomDTO
+
+Schema:
+{
+  "roomType": "SINGLE | DOUBLE | SUITE",      // optional
+  "price": 150.0,                               // optional
+  "priceType": "PER_NIGHT | PER_DAY",         // optional
+  "status": "AVAILABLE | BOOKED | OCCUPIED",  // optional
+  "description": "string"                     // optional
+}
+
+Success response:
+- 200 OK
+- RoomDTO
+
+Notes:
+- This is a partial update even though it uses PUT. Null fields are ignored.
+
+
+5.6 DELETE /api/rooms/{id}
+Auth:
+- ADMIN
+Path params:
+- id: Long
+Response:
+- 204 No Content
+
+
+5.7 POST /api/rooms/{roomId}/images
+Auth:
+- ADMIN
+Content-Type:
+- multipart/form-data
+Request DTO:
+- AddImageDTO
+
+Form-data schema:
+- file: file, required
+
+Success response:
+- 201 Created
+- RoomDTO
+
+Validation:
+- file must be present
+
+
+5.8 DELETE /api/rooms/{roomId}/images?imageUrl=...
+Auth:
+- ADMIN
+Query params:
+- imageUrl: string, required
+Response:
+- 200 OK
+- RoomDTO
+
+Notes:
+- Missing or blank imageUrl returns 400.
+- Unknown imageUrl for the room returns 400.
+
+
+5.9 POST /api/rooms/{roomId}/features
+Auth:
+- ADMIN
+Content-Type:
+- multipart/form-data
+Request DTO:
+- AddRoomFeatureDTO
+
+Form-data schema:
+- roomFeature: string, required, not blank
+- description: string, optional
+- imageFile: file, optional
+
+Success response:
+- 201 Created
+- RoomFeatureDTO
+
+RoomFeatureDTO shape:
+{
+  "id": 1,
+  "roomFeature": "string",
+  "description": "string",
+  "imageUrl": "https://..."
+}
+
+Notes:
+- Duplicate feature for the same room returns 400 with message "Feature already added to this room".
+
+
+6. BOOKING API
+--------------
+
+6.1 POST /api/bookings
+Auth:
+- GUEST
+Content-Type:
+- application/json
+Request DTO:
+- BookingRequestDTO
+
+Schema:
+{
+  "roomId": 1,                 // required
+  "checkInDate": "2026-05-01",   // required, must be a future date
+  "checkOutDate": "2026-05-05",  // required
+  "numberOfUnits": 1           // minimum 1, defaults to 1 if omitted by Java object initialization
+}
+
+Additional business rules from service:
+- checkOutDate must be after checkInDate
+- checkInDate cannot be in the past
+- room must exist
+- room status must be AVAILABLE
+- room must not already be booked for selected dates
+
+Success response:
+- 201 Created
+- BookingResponseDTO
+
+BookingResponseDTO shape:
+{
+  "id": 1,
+  "bookingCode": "BK-ABC123",
+  "guest": {
+    "id": 1,
+    "fullName": "string",
+    "username": "string",
+    "email": "string",
+    "phoneNumber": "string",
+    "userType": "ADMIN | FRONT_DESK | GUEST"
+  },
+  "room": { RoomDTO },
+  "checkInDate": "2026-05-01",
+  "checkOutDate": "2026-05-05",
+  "numberOfUnits": 1,
+  "numberOfNights": 4,
+  "totalPrice": 600.0,
+  "status": "CONFIRMED | CHECKED_IN | CHECKED_OUT | CANCELLED | NO_SHOW"
+}
+
+
+6.2 GET /api/bookings/my
+Auth:
+- GUEST
+Response:
+- 200 OK
+- List<BookingResponseDTO>
+
+
+6.3 PATCH /api/bookings/{id}/cancel
+Auth:
+- GUEST
+Path params:
+- id: Long booking id
+Response:
+- 200 OK
+- BookingResponseDTO
+
+Business rules:
+- caller must own the booking
+- only CONFIRMED bookings can be cancelled
+
+
+6.4 PATCH /api/bookings/{bookingCode}/checkin
+Auth:
+- FRONT_DESK or ADMIN
+Path params:
+- bookingCode: string
+Response:
+- 200 OK
+- BookingResponseDTO
+
+Business rules:
+- booking must exist
+- booking status must be CONFIRMED
+- room status is changed to OCCUPIED
+
+
+6.5 PATCH /api/bookings/{bookingCode}/checkout
+Auth:
+- FRONT_DESK or ADMIN
+Path params:
+- bookingCode: string
+Response:
+- 200 OK
+- BookingResponseDTO
+
+Business rules:
+- booking must exist
+- booking status must be CHECKED_IN
+- room status is changed to AVAILABLE
+
+
+6.6 GET /api/bookings
+Auth:
+- FRONT_DESK or ADMIN
+Response:
+- 200 OK
+- List<BookingResponseDTO>
+
+
+6.7 GET /api/bookings/{bookingCode}
+Auth:
+- FRONT_DESK or ADMIN
+Path params:
+- bookingCode: string
+Response:
+- 200 OK
+- BookingResponseDTO
+
+
+7. USER API
+-----------
+All user endpoints below are ADMIN-only.
+
+7.1 GET /api/users
+Response:
+- 200 OK
+- List<UserDTO>
+
+7.2 GET /api/users/{id}
+Path params:
+- id: Long
+Response:
+- 200 OK
+- UserDTO
+
+7.3 GET /api/users/type/{userType}
+Path params:
+- userType: ADMIN | FRONT_DESK | GUEST
+Response:
+- 200 OK
+- List<UserDTO>
+
+7.4 PATCH /api/users/{id}/deactivate
+Path params:
+- id: Long
+Response:
+- 200 OK
+- UserDTO
+
+7.5 PATCH /api/users/{id}/activate
+Path params:
+- id: Long
+Response:
+- 200 OK
+- UserDTO
+
+7.6 PATCH /api/users/{id}/role/{userType}
+Path params:
+- id: Long
+- userType: ADMIN | FRONT_DESK | GUEST
+Response:
+- 200 OK
+- UserDTO
+
+Request body:
+- none
+
+
+8. FEATURE CATEGORY API
+-----------------------
+Status:
+- Present in compiled classes under target/classes
+- Source controller/service files are missing from src/main/java in this workspace snapshot
+- Endpoints below were reconstructed from bytecode annotations and public signatures
+
+8.1 POST /api/features/categories
+Auth:
+- Not explicitly configured in SecurityConfig; likely requires authentication by fallback rule
+Content-Type:
+- multipart/form-data
+Request DTO:
+- CreateFeatureCategoryDTO
+
+Form-data schema:
+- name: string
+- icon: file
+
+Validation:
+- `@Valid` is present on the controller parameter, but bytecode inspection here did not expose field-level constraints for this DTO.
+
+Success response:
+- 201 Created
+- FeatureCategoryDTO
+
+FeatureCategoryDTO shape:
+{
+  "id": 1,
+  "name": "string",
+  "icon": "https://... or icon identifier"
+}
+
+
+8.2 GET /api/features/categories
+Auth:
+- Not explicitly configured in SecurityConfig; likely requires authentication by fallback rule
+Response:
+- 200 OK
+- List<FeatureCategoryDTO>
+
+
+8.3 DELETE /api/features/categories/{id}
+Auth:
+- Not explicitly configured in SecurityConfig; likely requires authentication by fallback rule
+Path params:
+- id: Long
+Response:
+- 204 No Content
+
+
+9. REQUEST DTO INDEX
+--------------------
+DTOs actively used by controller endpoints in this project snapshot:
+- RegisterRequestDTO
+- LoginRequestDTO
+- ForgotPasswordRequestDTO
+- ResetPasswordRequestDTO
+- CreateRoomDTO
+- UpdateRoomDTO
+- AddImageDTO
+- AddRoomFeatureDTO
+- BookingRequestDTO
+- CreateFeatureCategoryDTO (compiled endpoint only)
+
+DTO present in source but not referenced by any current controller in this snapshot:
+- CreateUserDTO
+
+CreateUserDTO schema:
+{
+  "fullName": "string",        // required, not blank
+  "username": "string",        // required, not blank
+  "email": "user@example.com", // required, valid email
+  "password": "string",        // required, minimum length 6
+  "phoneNumber": "string",     // optional
+  "userType": "ADMIN | FRONT_DESK | GUEST" // required
+}
+
+
+10. IMPLEMENTATION NOTES
+------------------------
+- Room creation accepts multipart form-data, not a JSON document.
+- Nested room features during room creation are sent as a JSON string inside the `features` form field.
+- Validation errors and many business-rule failures are normalized to HTTP 400.
+- Some API surface exists only in compiled artifacts (`target/classes`) and not in source, so this document flags those endpoints explicitly.

@@ -1,0 +1,1133 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Hotel Management System API",
+    "version": "1.0.0",
+    "description": "OpenAPI-style schema generated from the current project source under src/main/java and compiled feature endpoints found in target/classes."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Application root"
+    }
+  ],
+  "tags": [
+    { "name": "Auth" },
+    { "name": "Rooms" },
+    { "name": "Bookings" },
+    { "name": "Users" },
+    { "name": "Features" }
+  ],
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register a user",
+        "operationId": "register",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequestDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registration successful",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthResponseDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or business-rule failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Authenticate a user",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequestDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthResponseDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid credentials or validation failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Request a password reset link",
+        "operationId": "forgotPassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ForgotPasswordRequestDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset instructions sent",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MessageResponseDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or lookup failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Reset a password using token",
+        "operationId": "resetPassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ResetPasswordRequestDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successful",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MessageResponseDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or token failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms": {
+      "get": {
+        "tags": ["Rooms"],
+        "summary": "List all rooms",
+        "operationId": "getAllRooms",
+        "responses": {
+          "200": {
+            "description": "Rooms retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/RoomDTO" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Rooms"],
+        "summary": "Create a room",
+        "operationId": "createRoom",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": { "$ref": "#/components/schemas/CreateRoomFormData" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Room created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RoomDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or business-rule failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      }
+    },
+    "/api/rooms/available": {
+      "get": {
+        "tags": ["Rooms"],
+        "summary": "List available rooms",
+        "operationId": "getAvailableRooms",
+        "responses": {
+          "200": {
+            "description": "Available rooms retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/RoomDTO" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}": {
+      "get": {
+        "tags": ["Rooms"],
+        "summary": "Get room by id",
+        "operationId": "getRoomById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Room retrieved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RoomDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Room not found or invalid id",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Rooms"],
+        "summary": "Update room fields",
+        "operationId": "updateRoom",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateRoomDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Room updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RoomDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Update failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      },
+      "delete": {
+        "tags": ["Rooms"],
+        "summary": "Delete room",
+        "operationId": "deleteRoom",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Room deleted" },
+          "400": {
+            "description": "Delete failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      }
+    },
+    "/api/rooms/{roomId}/images": {
+      "post": {
+        "tags": ["Rooms"],
+        "summary": "Upload an image for a room",
+        "operationId": "addImage",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": { "$ref": "#/components/schemas/AddImageDTO" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Image added",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RoomDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Upload failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      },
+      "delete": {
+        "tags": ["Rooms"],
+        "summary": "Delete a room image by URL",
+        "operationId": "deleteImage",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          },
+          {
+            "name": "imageUrl",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image removed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RoomDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Delete failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      }
+    },
+    "/api/rooms/{roomId}/features": {
+      "post": {
+        "tags": ["Rooms"],
+        "summary": "Add a feature to a room",
+        "operationId": "addFeature",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": { "$ref": "#/components/schemas/AddRoomFeatureDTO" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Feature added",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RoomFeatureDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or duplicate-feature failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      }
+    },
+    "/api/bookings": {
+      "post": {
+        "tags": ["Bookings"],
+        "summary": "Create a booking",
+        "operationId": "createBooking",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BookingRequestDTO" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingResponseDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or booking-rule failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        },
+        "x-required-role": "GUEST"
+      },
+      "get": {
+        "tags": ["Bookings"],
+        "summary": "List all bookings",
+        "operationId": "getAllBookings",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Bookings retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/BookingResponseDTO" }
+                }
+              }
+            }
+          }
+        },
+        "x-required-role": "FRONT_DESK or ADMIN"
+      }
+    },
+    "/api/bookings/my": {
+      "get": {
+        "tags": ["Bookings"],
+        "summary": "List current guest bookings",
+        "operationId": "getMyBookings",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Bookings retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/BookingResponseDTO" }
+                }
+              }
+            }
+          }
+        },
+        "x-required-role": "GUEST"
+      }
+    },
+    "/api/bookings/{id}/cancel": {
+      "patch": {
+        "tags": ["Bookings"],
+        "summary": "Cancel a booking",
+        "operationId": "cancelBooking",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking cancelled",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingResponseDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Cancel failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        },
+        "x-required-role": "GUEST"
+      }
+    },
+    "/api/bookings/{bookingCode}/checkin": {
+      "patch": {
+        "tags": ["Bookings"],
+        "summary": "Check in a guest",
+        "operationId": "checkIn",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Guest checked in",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingResponseDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Check-in failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        },
+        "x-required-role": "FRONT_DESK or ADMIN"
+      }
+    },
+    "/api/bookings/{bookingCode}/checkout": {
+      "patch": {
+        "tags": ["Bookings"],
+        "summary": "Check out a guest",
+        "operationId": "checkOut",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Guest checked out",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingResponseDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Checkout failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        },
+        "x-required-role": "FRONT_DESK or ADMIN"
+      }
+    },
+    "/api/bookings/{bookingCode}": {
+      "get": {
+        "tags": ["Bookings"],
+        "summary": "Get booking by booking code",
+        "operationId": "getByBookingCode",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking retrieved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingResponseDTO" }
+              }
+            }
+          },
+          "400": {
+            "description": "Lookup failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiErrorResponse" }
+              }
+            }
+          }
+        },
+        "x-required-role": "FRONT_DESK or ADMIN"
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "List all users",
+        "operationId": "getAllUsers",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Users retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/UserDTO" }
+                }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user by id",
+        "operationId": "getUserById",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserDTO" }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      }
+    },
+    "/api/users/type/{userType}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get users by role",
+        "operationId": "getUsersByType",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "userType",
+            "in": "path",
+            "required": true,
+            "schema": { "$ref": "#/components/schemas/UserType" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/UserDTO" }
+                }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      }
+    },
+    "/api/users/{id}/deactivate": {
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Deactivate a user",
+        "operationId": "deactivateUser",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deactivated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserDTO" }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      }
+    },
+    "/api/users/{id}/activate": {
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Activate a user",
+        "operationId": "activateUser",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User activated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserDTO" }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      }
+    },
+    "/api/users/{id}/role/{userType}": {
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Change user role",
+        "operationId": "changeUserType",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          },
+          {
+            "name": "userType",
+            "in": "path",
+            "required": true,
+            "schema": { "$ref": "#/components/schemas/UserType" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User role changed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserDTO" }
+              }
+            }
+          }
+        },
+        "x-required-role": "ADMIN"
+      }
+    },
+    "/api/features/categories": {
+      "post": {
+        "tags": ["Features"],
+        "summary": "Create a feature category",
+        "description": "This endpoint was reconstructed from compiled classes in target/classes because the source controller is absent from src.",
+        "operationId": "createCategory",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": { "$ref": "#/components/schemas/CreateFeatureCategoryDTO" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FeatureCategoryDTO" }
+              }
+            }
+          }
+        },
+        "x-source": "compiled-only"
+      },
+      "get": {
+        "tags": ["Features"],
+        "summary": "List feature categories",
+        "description": "This endpoint was reconstructed from compiled classes in target/classes because the source controller is absent from src.",
+        "operationId": "getAllCategories",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Categories retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/FeatureCategoryDTO" }
+                }
+              }
+            }
+          }
+        },
+        "x-source": "compiled-only"
+      }
+    },
+    "/api/features/categories/{id}": {
+      "delete": {
+        "tags": ["Features"],
+        "summary": "Delete feature category",
+        "description": "This endpoint was reconstructed from compiled classes in target/classes because the source controller is absent from src.",
+        "operationId": "deleteCategory",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Category deleted"
+          }
+        },
+        "x-source": "compiled-only"
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "RegisterRequestDTO": {
+        "type": "object",
+        "required": ["fullName", "username", "email", "password", "userType"],
+        "properties": {
+          "fullName": { "type": "string", "minLength": 1 },
+          "username": { "type": "string", "minLength": 1 },
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 6 },
+          "phoneNumber": { "type": "string" },
+          "userType": { "$ref": "#/components/schemas/UserType" }
+        }
+      },
+      "LoginRequestDTO": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": { "type": "string", "minLength": 1 },
+          "password": { "type": "string", "minLength": 1 }
+        }
+      },
+      "ForgotPasswordRequestDTO": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": { "type": "string", "format": "email" }
+        }
+      },
+      "ResetPasswordRequestDTO": {
+        "type": "object",
+        "required": ["token", "newPassword"],
+        "properties": {
+          "token": { "type": "string", "minLength": 1 },
+          "newPassword": { "type": "string", "minLength": 6 }
+        }
+      },
+      "BookingRequestDTO": {
+        "type": "object",
+        "required": ["roomId", "checkInDate", "checkOutDate"],
+        "properties": {
+          "roomId": { "type": "integer", "format": "int64" },
+          "checkInDate": { "type": "string", "format": "date" },
+          "checkOutDate": { "type": "string", "format": "date" },
+          "numberOfUnits": { "type": "integer", "minimum": 1, "default": 1 }
+        },
+        "description": "Service rules also require checkOutDate > checkInDate and checkInDate not in the past. DTO validation enforces checkInDate as future."
+      },
+      "UpdateRoomDTO": {
+        "type": "object",
+        "properties": {
+          "roomType": { "$ref": "#/components/schemas/RoomType" },
+          "price": { "type": "number", "format": "double" },
+          "priceType": { "$ref": "#/components/schemas/PriceType" },
+          "status": { "$ref": "#/components/schemas/RoomStatus" },
+          "description": { "type": "string" }
+        },
+        "description": "All fields are optional; nulls are ignored by the service."
+      },
+      "AddImageDTO": {
+        "type": "object",
+        "required": ["file"],
+        "properties": {
+          "file": { "type": "string", "format": "binary" }
+        }
+      },
+      "AddRoomFeatureDTO": {
+        "type": "object",
+        "required": ["roomFeature"],
+        "properties": {
+          "roomFeature": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" },
+          "imageFile": { "type": "string", "format": "binary" }
+        }
+      },
+      "CreateRoomFormData": {
+        "type": "object",
+        "required": ["roomNumber", "roomType", "price", "priceType"],
+        "properties": {
+          "roomNumber": { "type": "string", "minLength": 1 },
+          "roomType": { "$ref": "#/components/schemas/RoomType" },
+          "price": { "type": "number", "format": "double", "exclusiveMinimum": 0 },
+          "priceType": { "$ref": "#/components/schemas/PriceType" },
+          "description": { "type": "string" },
+          "imageFiles": {
+            "type": "array",
+            "items": { "type": "string", "format": "binary" }
+          },
+          "features": {
+            "type": "string",
+            "description": "JSON array string representing feature objects. Each item follows AddRoomFeatureJSON during room creation: { roomFeature, description }."
+          }
+        }
+      },
+      "CreateFeatureCategoryDTO": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "icon": { "type": "string", "format": "binary" }
+        },
+        "description": "Reconstructed from compiled class metadata. Field-level validation annotations were not available from current inspection."
+      },
+      "AuthResponseDTO": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "user": { "$ref": "#/components/schemas/UserDTO" }
+        }
+      },
+      "MessageResponseDTO": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        }
+      },
+      "UserDTO": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "fullName": { "type": "string" },
+          "username": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phoneNumber": { "type": "string" },
+          "userType": { "$ref": "#/components/schemas/UserType" },
+          "active": { "type": "boolean", "description": "Serialized from Java boolean field isActive; actual JSON property may depend on Jackson naming." },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "RoomFeatureDTO": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "roomFeature": { "type": "string" },
+          "description": { "type": "string" },
+          "imageUrl": { "type": "string" }
+        }
+      },
+      "RoomDTO": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "roomNumber": { "type": "string" },
+          "roomType": { "$ref": "#/components/schemas/RoomType" },
+          "price": { "type": "number", "format": "double" },
+          "priceType": { "$ref": "#/components/schemas/PriceType" },
+          "status": { "$ref": "#/components/schemas/RoomStatus" },
+          "description": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "features": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RoomFeatureDTO" }
+          },
+          "imageUrls": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "BookingResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "bookingCode": { "type": "string" },
+          "guest": { "$ref": "#/components/schemas/UserDTO" },
+          "room": { "$ref": "#/components/schemas/RoomDTO" },
+          "checkInDate": { "type": "string", "format": "date" },
+          "checkOutDate": { "type": "string", "format": "date" },
+          "numberOfUnits": { "type": "integer" },
+          "numberOfNights": { "type": "integer", "format": "int64" },
+          "totalPrice": { "type": "number", "format": "double" },
+          "status": { "$ref": "#/components/schemas/BookingStatus" }
+        }
+      },
+      "FeatureCategoryDTO": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "name": { "type": "string" },
+          "icon": { "type": "string" }
+        },
+        "description": "Reconstructed from compiled class metadata."
+      },
+      "ApiErrorResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "status": { "type": "integer" },
+          "error": { "type": "string" },
+          "message": { "type": "string" },
+          "path": { "type": "string" },
+          "details": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "RoomType": {
+        "type": "string",
+        "enum": ["SINGLE", "DOUBLE", "SUITE"]
+      },
+      "PriceType": {
+        "type": "string",
+        "enum": ["PER_NIGHT", "PER_DAY"]
+      },
+      "RoomStatus": {
+        "type": "string",
+        "enum": ["AVAILABLE", "BOOKED", "OCCUPIED"]
+      },
+      "UserType": {
+        "type": "string",
+        "enum": ["ADMIN", "FRONT_DESK", "GUEST"]
+      },
+      "BookingStatus": {
+        "type": "string",
+        "enum": ["CONFIRMED", "CHECKED_IN", "CHECKED_OUT", "CANCELLED", "NO_SHOW"]
+      }
+    }
+  }
+}
