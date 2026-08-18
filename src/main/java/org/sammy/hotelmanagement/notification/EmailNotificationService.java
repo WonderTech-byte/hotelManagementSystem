@@ -23,7 +23,7 @@ public class EmailNotificationService {
 
 
     @Async
-    private void send(String toEmail, String subject, String body) {
+    protected void send(String toEmail, String subject, String body) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
