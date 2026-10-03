@@ -1,6 +1,8 @@
 package org.sammy.hotelmanagement.auth;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.sammy.hotelmanagement.auth.dto.AuthResponseDTO;
 import org.sammy.hotelmanagement.auth.dto.CreateAdminRequestDto;
 import org.sammy.hotelmanagement.auth.dto.ForgotPasswordRequestDTO;
@@ -29,6 +31,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -92,7 +95,7 @@ public class AuthService {
         }
     }
 
-    public MessageResponseDTO forgotPassword(ForgotPasswordRequestDTO request) {
+    public MessageResponseDTO forgotPassword(ForgotPasswordRequestDTO request, HttpServletRequest httpRequest) {
         User user = userRepository.findByEmail(request.email)
                 .orElseThrow(() -> new NotFoundException("No user found with email: " + request.email));
 
@@ -101,7 +104,8 @@ public class AuthService {
         user.setPasswordResetTokenExpiresAt(LocalDateTime.now().plusMinutes(passwordResetExpirationMinutes));
         userRepository.save(user);
 
-        String resetLink = passwordResetBaseUrl + "?token=" + resetToken;
+        String frontendBaseUrl = extractFrontendBaseUrl(httpRequest);
+        String resetLink = frontendBaseUrl + "/auth/reset-password?token=" + resetToken;
         emailNotificationService.sendPasswordResetEmail(user, resetLink);
 
         return new MessageResponseDTO("Password reset instructions have been sent to your email");
@@ -122,6 +126,33 @@ public class AuthService {
         userRepository.save(user);
 
         return new MessageResponseDTO("Password has been reset successfully");
+    }
+
+    private String extractFrontendBaseUrl(HttpServletRequest request) {
+        String origin = request.getHeader("Origin");
+        String referer = request.getHeader("Referer");
+
+        if (origin != null && !origin.isEmpty()) {
+            log.debug("Using Origin header for frontend URL: {}", origin);
+            return origin;
+        }
+
+        if (referer != null && !referer.isEmpty()) {
+            try {
+                java.net.URL url = new java.net.URL(referer);
+                String baseUrl = url.getProtocol() + "://" + url.getHost();
+                if (url.getPort() != -1) {
+                    baseUrl += ":" + url.getPort();
+                }
+                log.debug("Using Referer header for frontend URL: {}", baseUrl);
+                return baseUrl;
+            } catch (Exception e) {
+                log.warn("Failed to parse Referer header: {}", referer, e);
+            }
+        }
+
+        log.debug("Using configured default frontend URL: {}", passwordResetBaseUrl);
+        return passwordResetBaseUrl.replace("/auth/reset-password", "");
     }
 
     private UserDTO toDTO(User user) {

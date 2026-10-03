@@ -1,5 +1,6 @@
 package org.sammy.hotelmanagement.auth;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sammy.hotelmanagement.auth.dto.AuthResponseDTO;
@@ -37,8 +38,9 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<MessageResponseDTO> forgotPassword(
-            @Valid @RequestBody ForgotPasswordRequestDTO request) {
-        return ResponseEntity.ok(authService.forgotPassword(request));
+            @Valid @RequestBody ForgotPasswordRequestDTO request,
+            HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(authService.forgotPassword(request, httpRequest));
     }
 
     @PostMapping("/reset-password")
