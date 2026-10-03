@@ -20,13 +20,7 @@ services:
       
       # JWT Configuration - from .env
       JWT_SECRET: ${JWT_SECRET}
-      
-      # Mailjet Email Configuration - from .env
-      MAILJET_API_KEY: ${MAILJET_API_KEY}
-      MAILJET_SECRET_KEY: ${MAILJET_SECRET_KEY}
-      MAILJET_SENDER_EMAIL: ${MAILJET_SENDER_EMAIL:-noreply@hotelmanagement.com}
-      MAILJET_SENDER_NAME: ${MAILJET_SENDER_NAME:-Hotel Management System}
-      
+
       # Cloudinary Configuration - from .env
       CLOUDINARY_CLOUD_NAME: ${CLOUD_NAME}
       CLOUDINARY_API_KEY: ${API_KEY}
