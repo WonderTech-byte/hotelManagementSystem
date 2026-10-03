@@ -4,9 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sammy.hotelmanagement.booking.Booking;
 import org.sammy.hotelmanagement.user.User;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -15,22 +12,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EmailNotificationService {
 
-    private final JavaMailSender mailSender;
-
-    @Value("${spring.mail.from}")
-    private String fromEmail;
-
-
+    private final MailjetEmailService mailjetEmailService;
 
     @Async
-    protected void send(String toEmail, String subject, String body) {
+    protected void send(String toEmail, String toName, String subject, String body) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(toEmail);
-            message.setSubject(subject);
-            message.setText(body);
-            mailSender.send(message);
+            mailjetEmailService.sendEmail(toEmail, toName, subject, body);
             log.info("Email sent to {} | Subject: {}", toEmail, subject);
         } catch (Exception e) {
             log.error("Failed to send email to {} | Error: {}", toEmail, e.getMessage());
@@ -55,7 +42,7 @@ public class EmailNotificationService {
                 user.getFullName(),
                 resetLink
         );
-        send(user.getEmail(), subject, body);
+        send(user.getEmail(), user.getFullName(), subject, body);
     }
 
 
@@ -88,7 +75,7 @@ public class EmailNotificationService {
                 booking.getNumberOfNights(),
                 booking.getTotalPrice()
         );
-        send(guest.getEmail(), subject, body);
+        send(guest.getEmail(), guest.getFullName(), subject, body);
     }
 
 
@@ -113,7 +100,7 @@ public class EmailNotificationService {
                 booking.getRoom().getRoomNumber(),
                 booking.getCheckInDate()
         );
-        send(guest.getEmail(), subject, body);
+        send(guest.getEmail(), guest.getFullName(), subject, body);
     }
 
 
@@ -137,7 +124,7 @@ public class EmailNotificationService {
                 booking.getRoom().getRoomNumber(),
                 booking.getCheckOutDate()
         );
-        send(guest.getEmail(), subject, body);
+        send(guest.getEmail(), guest.getFullName(), subject, body);
     }
 
 
@@ -158,7 +145,7 @@ public class EmailNotificationService {
                 guest.getFullName(),
                 booking.getCheckOutDate()
         );
-        send(guest.getEmail(), subject, body);
+        send(guest.getEmail(), guest.getFullName(), subject, body);
     }
 
 
@@ -185,7 +172,7 @@ public class EmailNotificationService {
                 booking.getCheckInDate(),
                 booking.getCheckOutDate()
         );
-        send(guest.getEmail(), subject, body);
+        send(guest.getEmail(), guest.getFullName(), subject, body);
     }
 
 
@@ -206,7 +193,7 @@ public class EmailNotificationService {
                 booking.getBookingCode(),
                 booking.getCheckInDate()
         );
-        send(guest.getEmail(), subject, body);
+        send(guest.getEmail(), guest.getFullName(), subject, body);
     }
 
 
@@ -234,6 +221,6 @@ public class EmailNotificationService {
                 booking.getRoom().getRoomNumber(),
                 booking.getCheckInDate()
         );
-        send(admin.getEmail(), subject, body);
+        send(admin.getEmail(), admin.getFullName(), subject, body);
     }
 }
