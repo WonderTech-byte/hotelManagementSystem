@@ -4,26 +4,38 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: hotel-management-app
+    env_file:
+      - .env
     environment:
+      # Database Configuration (H2)
       SPRING_DATASOURCE_URL: jdbc:h2:./hotel_db;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.h2.Driver
       SPRING_DATASOURCE_USERNAME: sa
       SPRING_DATASOURCE_PASSWORD: ""
+      
+      # JPA/Hibernate Configuration
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_SHOW_SQL: "true"  # More verbose in development
       SPRING_H2_CONSOLE_ENABLED: "true"
+      
+      # JWT Configuration - from .env
       JWT_SECRET: ${JWT_SECRET}
-      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-smtp.gmail.com}
-      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
-      SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
-      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
-      SPRING_MAIL_FROM: ${MAIL_USERNAME}
+      
+      # Mailjet Email Configuration - from .env
+      MAILJET_API_KEY: ${MAILJET_API_KEY}
+      MAILJET_SECRET_KEY: ${MAILJET_SECRET_KEY}
+      MAILJET_SENDER_EMAIL: ${MAILJET_SENDER_EMAIL:-noreply@hotelmanagement.com}
+      MAILJET_SENDER_NAME: ${MAILJET_SENDER_NAME:-Hotel Management System}
+      
+      # Cloudinary Configuration - from .env
       CLOUDINARY_CLOUD_NAME: ${CLOUD_NAME}
       CLOUDINARY_API_KEY: ${API_KEY}
       CLOUDINARY_API_SECRET: ${API_SECRET}
-      APP_PASSWORD_RESET_BASE_URL: ${PASSWORD_RESET_BASE_URL:-http://localhost:8080/reset-password}
+      
+      # Application Configuration - from .env
+      PASSWORD_RESET_BASE_URL: ${PASSWORD_RESET_BASE_URL:-http://localhost:5173/auth/reset-password}
+      APP_PASSWORD_RESET_EXPIRATION_MINUTES: "30"
+      
     ports:
       - "8080:8080"
     networks:
@@ -33,6 +45,7 @@ services:
       timeout: 10s
       retries: 5
       interval: 30s
+    restart: unless-stopped
 
 networks:
   hotel-network:
