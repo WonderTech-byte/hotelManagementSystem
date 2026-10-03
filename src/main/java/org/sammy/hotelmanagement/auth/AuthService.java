@@ -38,7 +38,7 @@ public class AuthService {
     private final UserDetailsService userDetailsService;
     private final EmailNotificationService emailNotificationService;
 
-    @Value("${app.password-reset.base-url:http://localhost:8080/reset-password}")
+    @Value("${app.password-reset.base-url:http://localhost:5173/auth/reset-password}")
     private String passwordResetBaseUrl;
 
     @Value("${app.password-reset.expiration-minutes:30}")
