@@ -64,7 +64,8 @@ public class SecurityConfig {
                         "/actuator/health/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
-                        "/swagger-ui.html"
+                        "/swagger-ui.html",
+                        "/api/health/**"
                         ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/rooms/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/bookings").hasRole("GUEST")
